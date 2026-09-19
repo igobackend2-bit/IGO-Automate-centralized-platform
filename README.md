@@ -4,8 +4,9 @@ Centralized automation platform for IGO Group — unifies WhatsApp bulk messagin
 messaging, new-customer onboarding, and an AI persona layer, replacing the paid WATI +
 Zoho Campaigns setup with a self-hosted open-source stack.
 
-See the full build brief for architecture, phases, and constraints. **Status: Phase 1 (Foundation)
-in progress.** WATI, Zoho Campaigns, and the live n8n W1–W5 workflows are untouched.
+See [docs/BUILD_PLAN_PHASE_2-5.md](docs/BUILD_PLAN_PHASE_2-5.md) for the full phase-by-phase
+build plan with exit criteria. **Status: Phase 2 (Read-only integration) in progress.** WATI,
+Zoho Campaigns, and the live n8n W1–W5 workflows are untouched.
 
 ## Layout
 
@@ -14,8 +15,10 @@ apps/
   web/    Next.js + Tailwind dashboard (the platform UI)
   api/    Node/Express backend — WhatsAppProvider / AIProvider interfaces,
           webhook receivers, Supabase access
-docker-compose.yml   Evolution API + listmonk + supporting infra, as NEW services
-docker/              Postgres init scripts, listmonk config
+supabase/migrations/  Versioned SQL for the new tables + RLS (see below)
+docker-compose.yml     Evolution API + listmonk + supporting infra, as NEW services
+docker/                Postgres init scripts, listmonk config
+docs/                  Build plan and other project docs
 ```
 
 ## Local development
@@ -58,10 +61,37 @@ Before a real deploy on `srv1791721.hstgr.cloud`: pull each project's current do
 (doc.evolution-api.com, listmonk.app/docs) and pin exact image versions — this compose file
 uses `latest` as a scaffolding placeholder only.
 
+## Supabase migrations
+
+`supabase/migrations/` has the versioned SQL for Phase 2's new tables (`segments`,
+`templates`, `campaigns`, `messages`, `conversation_logs`, `onboarding_events`), a minimal
+`profiles` RBAC table, additive changes to the existing `customers` table, and RLS policies
+scoped by sub-brand + role. **Written but not yet applied** — this repo isn't linked to a real
+Supabase project yet. Once the real project ref for the Aria/W1–W5 project is available:
+
+```bash
+supabase link --project-ref <ref>
+supabase db push          # or paste each file into the SQL editor on a branch first
+```
+
+Verify the `customers` migration's assumed columns (`name`, `phone`, `email`, `sub_brand`,
+`source`) against the real table before applying — it's written defensively
+(`add column if not exists`) but hasn't been checked against the live schema.
+
+## Testing
+
+```bash
+cd apps/api && npm test     # normalize/dedupe unit tests (node:test)
+cd apps/web && npm run lint && npm run build
+```
+
+CI (`.github/workflows/ci.yml`) runs both on every push/PR to `main`.
+
 ## Build phases
 
-1. **Foundation** (current) — scaffold app, deploy Evolution API + listmonk, no live traffic touched.
-2. **Read-only integration** — Unified Contacts + Analytics against real Supabase data, no sends.
+1. **Foundation** — scaffold app, deploy Evolution API + listmonk, no live traffic touched. ✅
+2. **Read-only integration** (current) — Unified Contacts + Analytics modules, migrations, and
+   RLS are built; pending the real Supabase project ref to apply and verify against live data.
 3. **Controlled cutover** — one n8n workflow to Evolution API in parallel with WATI; fix SPF/DKIM/DMARC before any real email.
 4. **Fine-tuning** — export `conversation_logs`, LoRA fine-tune via Unsloth, serve via Ollama.
 5. **Decommission** — sunset WATI and Zoho Campaigns once validated across all sub-brands.
