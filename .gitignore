@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# env files (never commit real secrets)
+.env
+.env.local
+.env.*.local
+apps/api/.env
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# build output
+dist/
+build/
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# docker volumes (local dev)
+docker/data/

@@ -1,0 +1,100 @@
+name: igo-automate
+
+# Phase 1: adds Evolution API + listmonk as NEW services on this VPS.
+# Nothing here touches the live WATI setup or the existing n8n instance.
+#
+# Before a real deploy: pull each project's current .env.example / docs
+# (doc.evolution-api.com, listmonk.app/docs) and pin exact image versions —
+# `latest` below is a placeholder for local scaffolding only.
+
+services:
+  infra-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${INFRA_POSTGRES_USER:-igo_infra}
+      POSTGRES_PASSWORD: ${INFRA_POSTGRES_PASSWORD:-change-me}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_MULTIPLE_DATABASES:-listmonk,evolution}
+    volumes:
+      - infra_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${INFRA_POSTGRES_USER:-igo_infra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  infra-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - infra_redis_data:/data
+
+  evolution-api:
+    image: atendai/evolution-api:latest
+    restart: unless-stopped
+    depends_on:
+      infra-postgres:
+        condition: service_healthy
+      infra-redis:
+        condition: service_started
+    environment:
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change-me}
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-https://wa-api.igogroups.com}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${INFRA_POSTGRES_USER:-igo_infra}:${INFRA_POSTGRES_PASSWORD:-change-me}@infra-postgres:5432/evolution
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://infra-redis:6379/1
+      # WhatsApp Cloud API mode (official Meta platform, not Baileys/unofficial)
+      WA_BUSINESS_ACCOUNT_ID: ${WA_BUSINESS_ACCOUNT_ID:-}
+      WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-}
+      WA_PHONE_NUMBER_ID: ${WA_PHONE_NUMBER_ID:-}
+    volumes:
+      - evolution_instances:/evolution/instances
+    ports:
+      - "8080:8080" # put behind the existing reverse proxy -> wa-api.igogroups.com
+
+  listmonk:
+    image: listmonk/listmonk:latest
+    restart: unless-stopped
+    depends_on:
+      infra-postgres:
+        condition: service_healthy
+    environment:
+      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-admin}
+      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-change-me}
+      LISTMONK_app__address: 0.0.0.0:9000
+      LISTMONK_db__host: infra-postgres
+      LISTMONK_db__port: 5432
+      LISTMONK_db__user: ${INFRA_POSTGRES_USER:-igo_infra}
+      LISTMONK_db__password: ${INFRA_POSTGRES_PASSWORD:-change-me}
+      LISTMONK_db__database: listmonk
+      TZ: Asia/Kolkata
+    command: >
+      sh -c "./listmonk --install --idempotent --yes && ./listmonk"
+    ports:
+      - "9000:9000" # put behind the existing reverse proxy -> mail.igogroups.com
+
+  api:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    env_file:
+      - ./apps/api/.env
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: ./apps/web
+    restart: unless-stopped
+    env_file:
+      - ./apps/web/.env.local
+    ports:
+      - "3000:3000"
+
+volumes:
+  infra_postgres_data:
+  infra_redis_data:
+  evolution_instances:
