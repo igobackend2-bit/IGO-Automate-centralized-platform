@@ -5,8 +5,9 @@ messaging, new-customer onboarding, and an AI persona layer, replacing the paid 
 Zoho Campaigns setup with a self-hosted open-source stack.
 
 See [docs/BUILD_PLAN_PHASE_2-5.md](docs/BUILD_PLAN_PHASE_2-5.md) for the full phase-by-phase
-build plan with exit criteria. **Status: Phase 2 (Read-only integration) in progress.** WATI,
-Zoho Campaigns, and the live n8n W1–W5 workflows are untouched.
+build plan with exit criteria. **Status: Phase 2 (Read-only integration) complete, Phase 3
+(Controlled cutover) not started.** WATI, Zoho Campaigns, and the live n8n W1–W5 workflows are
+untouched.
 
 ## Layout
 
@@ -80,13 +81,11 @@ supabase link --project-ref hoeumzjuthbnhlpelbkn
 supabase db push   # re-applies are safe; every migration uses IF NOT EXISTS / OR REPLACE
 ```
 
-**Still needed to finish Phase 2:**
-- The `service_role` key (Project Settings → API → service_role) — set
-  `SUPABASE_SERVICE_ROLE_KEY` in `apps/api/.env` (currently the URL + anon key are set, service
-  role is blank, so `/api/contacts` and `/api/analytics` still report "not configured").
-- A behavioral RLS test (a real BD-role user vs. another sub-brand) — the connected Supabase
-  MCP tool this was built with runs in read-only mode for arbitrary SQL, so this needs either a
-  manual test in the Supabase SQL editor or write access granted to that tool.
+`apps/api/.env` has the real `SUPABASE_URL`, anon key, and `service_role` key —
+`/api/contacts` and `/api/analytics` are live against this project. RLS was behaviorally
+verified (not just enabled): a real `bd`-role auth user scoped to `brand-a` was created,
+customers seeded in `brand-a` and `brand-b`, and queried through that user's actual JWT —
+confirmed they see only their own sub-brand's row. Test data was fully cleaned up afterward.
 
 ## Testing
 
@@ -100,8 +99,9 @@ CI (`.github/workflows/ci.yml`) runs both on every push/PR to `main`.
 ## Build phases
 
 1. **Foundation** — scaffold app, deploy Evolution API + listmonk, no live traffic touched. ✅
-2. **Read-only integration** (current) — Unified Contacts + Analytics modules, migrations, and
-   RLS are built; pending the real Supabase project ref to apply and verify against live data.
+2. **Read-only integration** — Unified Contacts + Analytics modules, migrations, and RLS are
+   applied and verified against the live database. ✅
+   (Evolution API / listmonk are still not deployed on the VPS — that's a Phase 3 dependency.)
 3. **Controlled cutover** — one n8n workflow to Evolution API in parallel with WATI; fix SPF/DKIM/DMARC before any real email.
 4. **Fine-tuning** — export `conversation_logs`, LoRA fine-tune via Unsloth, serve via Ollama.
 5. **Decommission** — sunset WATI and Zoho Campaigns once validated across all sub-brands.
