@@ -1,9 +1,26 @@
--- Defensive, additive-only changes to the EXISTING `customers` table
--- (reused from the WhatsApp Lead Automation / Social CRM projects).
--- VERIFY actual column names in the real project before applying — this
--- assumes the columns described in the brief: id, name, phone, email,
--- sub_brand, source, created_at.
+-- `customers` — one row per lead/customer across all sub-brands.
+--
+-- NOTE: this project ("automation platform own", hoeumzjuthbnhlpelbkn) is a
+-- fresh, dedicated Supabase project created 2026-09-21 — it is NOT the
+-- existing Aria/W1-W5/Social CRM project the original brief said to reuse.
+-- That project was never made accessible, so `customers` is created fresh
+-- here rather than altered. If the Aria project's data ever needs merging
+-- in later, do it as a one-time import into this table, not a schema swap.
 
+create table if not exists public.customers (
+  id uuid primary key default gen_random_uuid(),
+  name text,
+  phone text,
+  email text,
+  sub_brand text,
+  source text,
+  normalized_phone text,
+  normalized_email text,
+  created_at timestamptz not null default now()
+);
+
+-- Defensive no-ops if this table already had a differently-shaped
+-- definition applied by a prior partial run.
 alter table public.customers
   add column if not exists sub_brand text,
   add column if not exists source text,

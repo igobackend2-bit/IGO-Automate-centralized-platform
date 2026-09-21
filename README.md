@@ -63,20 +63,30 @@ uses `latest` as a scaffolding placeholder only.
 
 ## Supabase migrations
 
-`supabase/migrations/` has the versioned SQL for Phase 2's new tables (`segments`,
-`templates`, `campaigns`, `messages`, `conversation_logs`, `onboarding_events`), a minimal
-`profiles` RBAC table, additive changes to the existing `customers` table, and RLS policies
-scoped by sub-brand + role. **Written but not yet applied** — this repo isn't linked to a real
-Supabase project yet. Once the real project ref for the Aria/W1–W5 project is available:
+**Project: `hoeumzjuthbnhlpelbkn`** ("automation platform own", https://hoeumzjuthbnhlpelbkn.supabase.co).
+This is a dedicated project created 2026-09-21 for this platform — **not** the existing
+Aria/W1–W5/Social CRM project the original brief assumed would be reused; that project was
+never made accessible, so `customers` and the rest of the schema were created fresh here.
+If the Aria data needs merging in later, treat it as a one-time data import into this
+project, not a schema/project swap.
+
+`supabase/migrations/` (0001–0011) is applied and live: `customers`, `segments`, `templates`,
+`campaigns`, `messages`, `conversation_logs`, `onboarding_events`, a `profiles` RBAC table, RLS
+on every table, and a security-hardening pass (pinned `search_path`, locked down the
+`can_access_sub_brand` RLS helper to `authenticated` only — see the Supabase security advisor).
 
 ```bash
-supabase link --project-ref <ref>
-supabase db push          # or paste each file into the SQL editor on a branch first
+supabase link --project-ref hoeumzjuthbnhlpelbkn
+supabase db push   # re-applies are safe; every migration uses IF NOT EXISTS / OR REPLACE
 ```
 
-Verify the `customers` migration's assumed columns (`name`, `phone`, `email`, `sub_brand`,
-`source`) against the real table before applying — it's written defensively
-(`add column if not exists`) but hasn't been checked against the live schema.
+**Still needed to finish Phase 2:**
+- The `service_role` key (Project Settings → API → service_role) — set
+  `SUPABASE_SERVICE_ROLE_KEY` in `apps/api/.env` (currently the URL + anon key are set, service
+  role is blank, so `/api/contacts` and `/api/analytics` still report "not configured").
+- A behavioral RLS test (a real BD-role user vs. another sub-brand) — the connected Supabase
+  MCP tool this was built with runs in read-only mode for arbitrary SQL, so this needs either a
+  manual test in the Supabase SQL editor or write access granted to that tool.
 
 ## Testing
 
