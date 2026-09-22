@@ -1,5 +1,12 @@
 # Multi-Channel Enquiry Greeting — 28-Brand Rollout Plan
 
+**Status (2026-09-22): core pipeline built and verified end-to-end.** `brands` table is live,
+the first pilot brand (`igo-mushroom`) is seeded, and a real enquiry submitted through the
+actual public endpoint produced a real customer record and a real successful email send via
+listmonk (WhatsApp/SMS correctly skipped — no templates configured yet, which needs Meta
+approval / MSG91 DLT registration respectively, both still pending). See the "Verification log"
+section near the end for exactly what was tested and how.
+
 ## The requirement, restated
 
 IGO runs 28 brand websites, each with its own enquiry form. The moment someone submits an
@@ -145,3 +152,26 @@ blocking, not new.
 Nothing here needs real credentials to *scaffold* — the `brands` table, `/api/enquiries`
 endpoint, `SmsProvider` interface, and greeting orchestrator can all be built and tested locally
 first, same as the rest of Phase 3.
+
+## Verification log
+
+Real, not simulated — each of these was an actual request against a live local stack:
+
+- **`brands` table applied** to the real `hoeumzjuthbnhlpelbkn` project (migrations 0013–0014;
+  0014 fixed a real inconsistency — `email_template_id`/`sms_template_id` were mistakenly FK'd
+  to the internal `templates` table instead of holding the provider's own template ID directly,
+  the way `whatsapp_template_name` correctly already does).
+- **First pilot brand seeded**: `igo-mushroom`, with a real generated `public_api_key`, wired to
+  listmonk's built-in sample transactional template (ID 3) for the email leg.
+- **A real form submission**, via the actual `docs/snippets/enquiry-widget.js` loaded in a real
+  browser page, caught two real bugs before they could reach production:
+  1. `express-rate-limit` v8 crashing every request (missing their `ipKeyGenerator` helper).
+  2. CORS middleware registration order — the internal-dashboard policy was intercepting every
+     OPTIONS preflight before the public endpoint's permissive policy ever ran, silently
+     failing every real browser request while `curl` testing looked fine.
+- **A real end-to-end enquiry** through `POST /api/enquiries` with the pilot brand's real key:
+  produced a real `customers` row (correct dedupe key, correct `sub_brand` tag), correctly
+  *skipped* WhatsApp and SMS (no template configured — expected), and successfully sent a real
+  email via listmonk's transactional API (`onboarding_events` logged `email_greeting: sent`).
+  Test records cleaned up afterward; the `igo-mushroom` brand row itself was left in place as
+  the real first pilot, not test pollution.
