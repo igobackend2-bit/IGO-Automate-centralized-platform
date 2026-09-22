@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { getSupabase } from '../lib/supabase.js';
 import { normalizePhone, normalizeEmail } from '../lib/normalize.js';
 import { sendGreeting } from '../greeting/sendGreeting.js';
@@ -14,7 +14,7 @@ export const enquiriesRouter = Router();
 const limiter = rateLimit({
   windowMs: 60_000,
   max: 30,
-  keyGenerator: (req) => req.body?.public_api_key || req.ip,
+  keyGenerator: (req) => req.body?.public_api_key || ipKeyGenerator(req.ip),
   standardHeaders: true,
   legacyHeaders: false,
 });
