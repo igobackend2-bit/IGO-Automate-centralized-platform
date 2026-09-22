@@ -12,6 +12,7 @@ import { contactsRouter } from './routes/contacts.js';
 import { campaignsRouter } from './routes/campaigns.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { enquiriesRouter } from './routes/enquiries.js';
+import { templatesRouter } from './routes/templates.js';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/webhooks', webhooksRouter);
 app.use('/api/contacts', contactsRouter);
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/templates', templatesRouter);
 
 app.listen(config.port, () => {
   logger.info(`IGO Automate API listening on :${config.port} (${config.nodeEnv})`);
