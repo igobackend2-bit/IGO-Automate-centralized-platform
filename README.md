@@ -6,8 +6,10 @@ Zoho Campaigns setup with a self-hosted open-source stack.
 
 See [docs/BUILD_PLAN_PHASE_2-5.md](docs/BUILD_PLAN_PHASE_2-5.md) for the full phase-by-phase
 build plan with exit criteria. **Status: Phase 2 (Read-only integration) complete, Phase 3
-(Controlled cutover) not started.** WATI, Zoho Campaigns, and the live n8n W1–W5 workflows are
-untouched.
+(Controlled cutover) in progress** — real provider code and a locally-verified Evolution
+API/listmonk deployment are done; no real WhatsApp/email sending yet since that needs Meta
+Business approval, a real sending domain, and VPS access. WATI, Zoho Campaigns, and the live
+n8n W1–W5 workflows are untouched.
 
 ## Layout
 
@@ -51,16 +53,27 @@ Swapping providers is a config change, not a rewrite.
 ## Docker Compose (new services only)
 
 `docker-compose.yml` adds Evolution API and listmonk — nothing here modifies WATI or the
-existing n8n instance. Copy `.env.example` to `.env` at the repo root, fill in real values,
-then:
+existing n8n instance. Copy `.env.example` to `.env` at the repo root (local dev values are
+fine — see the file for what a real deploy additionally needs), then:
 
 ```bash
 docker compose up -d infra-postgres infra-redis evolution-api listmonk
 ```
 
-Before a real deploy on `srv1791721.hstgr.cloud`: pull each project's current docs
-(doc.evolution-api.com, listmonk.app/docs) and pin exact image versions — this compose file
-uses `latest` as a scaffolding placeholder only.
+**Verified working locally** (2026-09-22): all four containers boot cleanly — Evolution API
+runs its Prisma migrations against `infra-postgres` and serves its manager UI at
+`http://localhost:8080/manager` (log in with `EVOLUTION_API_KEY`; "WhatsApp Cloud API" is a
+selectable channel type, confirming the ToS-safe mode the brief requires is available), and
+listmonk auto-installs and serves a full dashboard at `http://localhost:9000/admin` (log in
+with `LISTMONK_ADMIN_USER` / `LISTMONK_ADMIN_PASSWORD`). Neither has a real WhatsApp number or
+sending domain connected yet — that's real Meta/DNS credentials, not something local Docker
+can provide.
+
+**Found and fixed along the way:** the Evolution API project rebranded — its image moved from
+`atendai/evolution-api` (no longer exists) to `evoapicloud/evolution-api`, and its docs moved
+from doc.evolution-api.com to docs.evolutionfoundation.com.br. `docker-compose.yml` and the
+provider code comments now reference the current names; re-verify both before a real deploy in
+case they've moved again.
 
 ## Supabase migrations
 
@@ -109,8 +122,10 @@ CI (`.github/workflows/ci.yml`) runs both on every push/PR to `main`.
 1. **Foundation** — scaffold app, deploy Evolution API + listmonk, no live traffic touched. ✅
 2. **Read-only integration** — Unified Contacts + Analytics modules, migrations, and RLS are
    applied and verified against the live database. ✅
-   (Evolution API / listmonk are still not deployed on the VPS — that's a Phase 3 dependency.)
-3. **Controlled cutover** — one n8n workflow to Evolution API in parallel with WATI; fix SPF/DKIM/DMARC before any real email.
+3. **Controlled cutover** (in progress) — real WATI/Evolution API provider code done; Evolution
+   API + listmonk verified running locally via Docker; still needed: real Meta WhatsApp
+   Business approval, SPF/DKIM/DMARC on a real sending domain, VPS deployment, WATI token, and
+   the one n8n workflow cutover + 7-day parallel run itself.
 4. **Fine-tuning** — export `conversation_logs`, LoRA fine-tune via Unsloth, serve via Ollama.
 5. **Decommission** — sunset WATI and Zoho Campaigns once validated across all sub-brands.
 

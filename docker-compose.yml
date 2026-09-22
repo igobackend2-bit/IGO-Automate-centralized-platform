@@ -3,9 +3,10 @@ name: igo-automate
 # Phase 1: adds Evolution API + listmonk as NEW services on this VPS.
 # Nothing here touches the live WATI setup or the existing n8n instance.
 #
-# Before a real deploy: pull each project's current .env.example / docs
-# (doc.evolution-api.com, listmonk.app/docs) and pin exact image versions —
-# `latest` below is a placeholder for local scaffolding only.
+# Evolution API's docs/image moved: docs.evolutionfoundation.com.br (was
+# doc.evolution-api.com), image evoapicloud/evolution-api (was
+# atendai/evolution-api) — re-check both before assuming they're current.
+# listmonk's image/docs are still listmonk/listmonk + listmonk.app/docs.
 
 services:
   infra-postgres:
@@ -31,7 +32,9 @@ services:
       - infra_redis_data:/data
 
   evolution-api:
-    image: atendai/evolution-api:latest
+    # Rebranded from atendai/evolution-api — verified against
+    # docs.evolutionfoundation.com.br on 2026-09-22.
+    image: evoapicloud/evolution-api:v2.1.1
     restart: unless-stopped
     depends_on:
       infra-postgres:
