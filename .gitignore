@@ -26,3 +26,6 @@ Thumbs.db
 
 # docker volumes (local dev)
 docker/data/
+
+# fine-tuning exports (real, even if scrubbed, customer conversation data)
+apps/api/exports/

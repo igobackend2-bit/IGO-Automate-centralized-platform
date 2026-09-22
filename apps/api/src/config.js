@@ -14,8 +14,15 @@ export const config = {
   whatsapp: {
     provider: process.env.WHATSAPP_PROVIDER || 'wati',
     wati: {
-      apiEndpoint: process.env.WATI_API_ENDPOINT || '',
+      // Base host per docs.wati.io — override only if WATI ever migrates you
+      // to a different data-center host.
+      baseUrl: process.env.WATI_API_BASE_URL || 'https://live-mt-server.wati.io',
+      tenantId: process.env.WATI_TENANT_ID || '',
       apiToken: process.env.WATI_API_TOKEN || '',
+      channelNumber: process.env.WATI_CHANNEL_NUMBER || '',
+      // WATI's docs don't document a signed-webhook (HMAC) scheme, so this
+      // is checked as a shared query-param secret on the registered
+      // webhook URL instead (?secret=...), not a signature header.
       webhookSecret: process.env.WATI_WEBHOOK_SECRET || '',
     },
     evolution: {
