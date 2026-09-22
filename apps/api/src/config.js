@@ -40,6 +40,14 @@ export const config = {
     webhookSecret: process.env.LISTMONK_WEBHOOK_SECRET || '',
   },
 
+  sms: {
+    provider: process.env.SMS_PROVIDER || 'msg91',
+    msg91: {
+      authKey: process.env.MSG91_AUTH_KEY || '',
+      senderId: process.env.MSG91_SENDER_ID || '',
+    },
+  },
+
   n8n: {
     baseUrl: process.env.N8N_BASE_URL || '',
     webhookToken: process.env.N8N_WEBHOOK_TOKEN || '',
