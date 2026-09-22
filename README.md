@@ -87,6 +87,14 @@ verified (not just enabled): a real `bd`-role auth user scoped to `brand-a` was 
 customers seeded in `brand-a` and `brand-b`, and queried through that user's actual JWT —
 confirmed they see only their own sub-brand's row. Test data was fully cleaned up afterward.
 
+**Historical data imported:** the W1-W5 lead_qualifier project (a separate legacy Supabase
+project, never made directly accessible to this platform) was recovered via a downloaded
+Postgres backup and imported — 265 leads and 672 real Aria conversation turns, now live in
+`customers` / `conversation_logs`. `sub_brand` was derived from the legacy `project_interest`
+field (goat-farming, mushroom, garden, container-farming, microgreens, polyhouse). This is the
+real seed data behind the Unified Contacts and Analytics modules, and the actual start of the
+Phase 4 fine-tuning dataset.
+
 ## Testing
 
 ```bash
