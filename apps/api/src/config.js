@@ -51,6 +51,10 @@ export const config = {
   n8n: {
     baseUrl: process.env.N8N_BASE_URL || '',
     webhookToken: process.env.N8N_WEBHOOK_TOKEN || '',
+    // For calling n8n's own management API (listing workflows for the
+    // Overview KPIs) — generated in n8n's UI under Settings > API, not the
+    // same thing as webhookToken (which is for n8n calling *us*).
+    apiKey: process.env.N8N_API_KEY || '',
   },
 
   ai: {

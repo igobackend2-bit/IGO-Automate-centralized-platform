@@ -20,6 +20,30 @@ export async function fetchHealth(): Promise<HealthResponse | null> {
   }
 }
 
+export type OverviewData = {
+  supabaseConfigured: boolean;
+  brands: { total: number; active: number } | null;
+  customers: { total: number; last7Days: number } | null;
+  conversationLogs: { total: number } | null;
+  campaigns: { total: number } | null;
+  messages: { total: number; sent: number } | null;
+  n8n: { configured: boolean; reachable: boolean; workflowCount: number | null; activeWorkflowCount: number | null };
+  evolutionApi: { configured: boolean; reachable: boolean };
+  listmonk: { configured: boolean; reachable: boolean };
+  socialAccounts: { connected: number; tracked: boolean };
+};
+
+export async function fetchOverview(): Promise<OverviewData | null> {
+  try {
+    const res = await fetch(`${apiBaseUrl()}/api/overview`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return body.data as OverviewData;
+  } catch {
+    return null;
+  }
+}
+
 export type Customer = {
   id: string;
   name: string | null;
